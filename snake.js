@@ -1,3 +1,4 @@
+//======== Constants ========
 const GRID_SIZE = 20;
 const BODY_SIZE = 18;
 const OFFSET = (GRID_SIZE-BODY_SIZE)/2;
@@ -6,7 +7,17 @@ const MAP_Y_LIMIT = 18;
 const FOOD_COLOR = "blue";
 const SNAKE_COLOR = "red";
 const SNAKE_INITIAL_LENGTH = 4;
-
+const BACKSPACE_VALUE = "X";
+const CLEAR_VALUE = "N";
+const ENTER_VALUE = "Y"
+const FOOD_TYPES = ["0","1","2","3","4","5","6","7","8","9",
+            BACKSPACE_VALUE, CLEAR_VALUE, ENTER_VALUE];
+const DIR_UP = "DIRECTION_UP";
+const DIR_DOWN = "DIRECTION_DOWN";
+const DIR_LEFT = "DIRECTION_LEFT";
+const DIR_RIGTH = "DIRECTION_RIGHT";
+const GAME_SPEED = 700;
+//======== Canvas Handling ========
 var canvas = document.getElementById("snake");
 var ctx = canvas.getContext("2d");
 ctx.font = (GRID_SIZE*0.75) + "px monospace";
@@ -35,20 +46,171 @@ function clearCanvas(){
     ctx.fillStyle = oldStyle;
 }
 
+function clearCell(x,y){
+    var oldStyle = ctx.fillStyle;
+    ctx.fillStyle = "white";
+    ctx.fillRect(x*GRID_SIZE,y*GRID_SIZE,GRID_SIZE,GRID_SIZE);
+    ctx.fillStyle = oldStyle;
+}
+
 function drawBodyPiece(x,y){
     var xOrigin = x*GRID_SIZE + OFFSET;
     var yOrigin = y*GRID_SIZE + OFFSET;
     ctx.fillRect(xOrigin,yOrigin,BODY_SIZE,BODY_SIZE);
 }
 
-function placeFood(food, x, y){
+function placeFood(food){
     let textWidth = ctx.measureText("X").width;
     let textHeight = textWidth / 2;
-    ctx.fillText(food,
-        x*GRID_SIZE+(GRID_SIZE-textWidth)/2,
-        (y+1)*GRID_SIZE-(GRID_SIZE-textHeight)/4
+    ctx.fillText(food.value,
+        food.x*GRID_SIZE+(GRID_SIZE-textWidth)/2,
+        (food.y+1)*GRID_SIZE-(GRID_SIZE-textHeight)/4
         );
     ctx.beginPath();
-    ctx.arc(x*GRID_SIZE+GRID_SIZE/2,y*GRID_SIZE+GRID_SIZE/2, BODY_SIZE/2, 0, Math.PI*2);
+    ctx.arc(food.x*GRID_SIZE+GRID_SIZE/2,food.y*GRID_SIZE+GRID_SIZE/2, (BODY_SIZE/2)*0.8, 0, Math.PI*2);
     ctx.stroke();
 }
+
+
+//======== Game ========
+var snake = {
+    length:SNAKE_INITIAL_LENGTH,
+    direction:DIR_RIGTH,
+    body: [{x:0,y:0}]
+};
+
+var foods = [];
+
+var updateId = 0;
+var currenGameSpeed = GAME_SPEED;
+
+function randomCell(){
+    return {
+        x: Math.floor(Math.random()*MAP_X_LIMIT),
+        y: Math.floor(Math.random()*MAP_Y_LIMIT)
+    }
+}
+
+function cellIsAvailable(x,y){
+    for(food in foods){
+        if(food.x == x && food.y == y)
+            return false;
+    }
+    for(piece of snake.body){
+        if(piece.x == x && piece.y == y)
+            return false;
+    }
+    return true;
+}
+
+function gameOver(){
+    //alert("Game Over!");
+    clearCanvas();
+    console.log("Game Over!");
+    clearTimeout(updateId);
+    currenGameSpeed *= 0.5;
+    startGame()
+    return -1;
+}
+
+function eatFood(food){
+    foods = foods.filter((e)=>{return e!=food});
+    snake.length++;
+    console.log(food);
+    placeAllFood();
+    return 1;
+}
+
+function checkCollisions(){
+    var body = snake.body.slice();
+    var head = body.shift();
+    //Wall collision
+    if(head.x < 0 || head.y < 0 || head.x > MAP_X_LIMIT || head.y > MAP_Y_LIMIT)
+        return gameOver();
+    //Body collision
+    for(piece of body){
+        if(piece.x == head.x && piece.y == head.y)
+            return gameOver();
+    }
+    //Food collision
+    for(food of foods){
+        if(food.x == head.x && food.y == head.y)
+            return eatFood(food);
+    }
+    return 0;
+}
+
+function moveSnake(){
+    var head = {...snake.body[0]};
+    switch (snake.direction) {
+        case DIR_UP:
+            head.y--;
+            break;
+        case DIR_DOWN:
+            head.y++;
+            break;
+        case DIR_LEFT:
+            head.x--;
+            break;
+        case DIR_RIGTH:
+            head.x++;
+            break;
+    }
+    drawBodyPiece(head.x, head.y);
+    snake.body.unshift(head);
+    if(snake.body.length > snake.length){
+        var tail = snake.body.pop();
+        clearCell(tail.x, tail.y);
+    }
+}
+
+document.addEventListener("keydown",(event)=>{
+    if(event.keyCode == 38 && snake.direction != DIR_DOWN){
+        snake.direction = DIR_UP;
+    }else if(event.keyCode == 40 && snake.direction != DIR_UP){
+        snake.direction = DIR_DOWN;
+    }else if(event.keyCode == 37 && snake.direction != DIR_RIGTH){
+        snake.direction = DIR_LEFT;
+    }else if(event.keyCode == 39 && snake.direction != DIR_LEFT){
+        snake.direction = DIR_RIGTH;
+    }
+});
+
+function placeAllFood(){
+    for(food of foods){
+        clearCell(food.x,food.y);
+    }
+    foods = [];
+    for(new_food of FOOD_TYPES){
+        var food_cell;
+        do{
+            food_cell = randomCell();
+        }while(!cellIsAvailable(food_cell.x,food_cell.y));
+        var food = {
+            value: new_food,
+            x: food_cell.x,
+            y: food_cell.y
+        }
+        foods.push(food);
+        placeFood(food);
+    }
+}
+
+function update(){
+    moveSnake();
+    checkCollisions();
+}
+
+function startGame(){
+    snake = {
+        length:SNAKE_INITIAL_LENGTH,
+        direction:DIR_RIGTH,
+        body: [{x:0,y:0}]
+    };
+    food = [];
+    drawBodyPiece(0,0);
+    placeAllFood();
+    updateId = setInterval(update, currenGameSpeed);
+}
+
+startGame();
