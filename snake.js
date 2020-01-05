@@ -6,17 +6,18 @@ const MAP_X_LIMIT = 30;
 const MAP_Y_LIMIT = 18;
 const FOOD_COLOR = "blue";
 const SNAKE_COLOR = "red";
-const SNAKE_INITIAL_LENGTH = 4;
 const BACKSPACE_VALUE = "X";
 const CLEAR_VALUE = "N";
 const ENTER_VALUE = "Y"
 const FOOD_TYPES = ["0","1","2","3","4","5","6","7","8","9",
-            BACKSPACE_VALUE, CLEAR_VALUE, ENTER_VALUE];
+BACKSPACE_VALUE, CLEAR_VALUE, ENTER_VALUE];
 const DIR_UP = "DIRECTION_UP";
 const DIR_DOWN = "DIRECTION_DOWN";
 const DIR_LEFT = "DIRECTION_LEFT";
 const DIR_RIGTH = "DIRECTION_RIGHT";
-const GAME_SPEED = 700;
+const GAME_SPEED = 400;
+const SNAKE_INITIAL_LENGTH = 12;
+const FOOD_GROWTH = 7;
 //======== Canvas Handling ========
 var canvas = document.getElementById("snake");
 var ctx = canvas.getContext("2d");
@@ -54,12 +55,17 @@ function clearCell(x,y){
 }
 
 function drawBodyPiece(x,y){
+    var oldStyle = ctx.fillStyle;
+    ctx.fillStyle = SNAKE_COLOR;
     var xOrigin = x*GRID_SIZE + OFFSET;
     var yOrigin = y*GRID_SIZE + OFFSET;
     ctx.fillRect(xOrigin,yOrigin,BODY_SIZE,BODY_SIZE);
+    ctx.fillStyle = oldStyle;
 }
 
 function placeFood(food){
+    var oldStyle = ctx.fillStyle;
+    ctx.fillStyle = FOOD_COLOR;
     let textWidth = ctx.measureText("X").width;
     let textHeight = textWidth / 2;
     ctx.fillText(food.value,
@@ -69,8 +75,30 @@ function placeFood(food){
     ctx.beginPath();
     ctx.arc(food.x*GRID_SIZE+GRID_SIZE/2,food.y*GRID_SIZE+GRID_SIZE/2, (BODY_SIZE/2)*0.8, 0, Math.PI*2);
     ctx.stroke();
+    ctx.fillStyle = oldStyle;
 }
 
+
+//======== Numbers input ========
+
+var numberSpan = document.getElementById("number");
+
+function resetNumber(){
+    numberSpan.innerText = "";
+}
+
+function enterValue(value){
+    if(value==BACKSPACE_VALUE&&numberSpan.innerText.length>0){
+        numberSpan.innerText = numberSpan.innerText.slice(0, numberSpan.innerText.length-1);
+    }else if(value==CLEAR_VALUE){
+        resetNumber();
+    }else if(value==ENTER_VALUE){
+        alert("You entered the number: "+numberSpan.innerText);
+        clearInterval(updateId);
+    }else{
+        numberSpan.innerText+=value;
+    }
+}
 
 //======== Game ========
 var snake = {
@@ -104,19 +132,19 @@ function cellIsAvailable(x,y){
 }
 
 function gameOver(){
-    //alert("Game Over!");
+    alert("Game Over!");
     clearCanvas();
-    console.log("Game Over!");
     clearTimeout(updateId);
     currenGameSpeed *= 0.5;
-    startGame()
+    resetNumber();
+    startGame();
     return -1;
 }
 
 function eatFood(food){
     foods = foods.filter((e)=>{return e!=food});
-    snake.length++;
-    console.log(food);
+    snake.length+=FOOD_GROWTH;
+    enterValue(food.value);
     placeAllFood();
     return 1;
 }
