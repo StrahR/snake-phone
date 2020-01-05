@@ -18,6 +18,9 @@ const DIR_RIGTH = "DIRECTION_RIGHT";
 const GAME_SPEED = 400;
 const SNAKE_INITIAL_LENGTH = 12;
 const FOOD_GROWTH = 7;
+document.getElementById("clear-value").innerText = CLEAR_VALUE;
+document.getElementById("backspace-value").innerText = BACKSPACE_VALUE;
+document.getElementById("enter-value").innerText = ENTER_VALUE;
 //======== Canvas Handling ========
 var canvas = document.getElementById("snake");
 var ctx = canvas.getContext("2d");
@@ -88,8 +91,9 @@ function resetNumber(){
 }
 
 function enterValue(value){
-    if(value==BACKSPACE_VALUE&&numberSpan.innerText.length>0){
-        numberSpan.innerText = numberSpan.innerText.slice(0, numberSpan.innerText.length-1);
+    if(value==BACKSPACE_VALUE){
+        if(numberSpan.innerText.length>0)
+            numberSpan.innerText = numberSpan.innerText.slice(0, numberSpan.innerText.length-1);
     }else if(value==CLEAR_VALUE){
         resetNumber();
     }else if(value==ENTER_VALUE){
